@@ -16,6 +16,12 @@ interface LivroDao {
     @Query("SELECT * FROM livros ORDER BY titulo ASC")
     fun getAllLivros(): Flow<List<LivroEntity>>
 
+    @Query("SELECT * FROM livros WHERE id = :id")
+    suspend fun getLivroById(id: Long): LivroEntity?
+
     @Query("DELETE FROM livros")
     suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM livros")
+    suspend fun count(): Int
 }

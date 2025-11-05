@@ -5,10 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-/**
- * A classe principal do banco de dados Room para a aplicação.
- * Ela une todas as entidades (tabelas) e DAOs.
- */
 @Database(entities = [LivroEntity::class, Comentario::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
