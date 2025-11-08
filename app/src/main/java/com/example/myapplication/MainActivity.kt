@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.view.LivroDetailScreen
 import com.example.myapplication.view.LivroListScreen
@@ -15,8 +16,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                var selectedLivroId by remember { mutableLongStateOf(0L) }
-                var showDetail by remember { mutableStateOf(false) }
+                var selectedLivroId by rememberSaveable { mutableLongStateOf(0L) }
+                var showDetail by rememberSaveable { mutableStateOf(false) }
 
                 if (showDetail && selectedLivroId > 0) {
                     LivroDetailScreen(

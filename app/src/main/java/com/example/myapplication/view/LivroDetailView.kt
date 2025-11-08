@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ import com.example.myapplication.api.RetrofitInstance
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.Comentario
 import com.example.myapplication.data.LivroEntity
+import com.example.myapplication.intent.createShareIntent
 import com.example.myapplication.repository.ComentarioRepository
 import com.example.myapplication.repository.LivroRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -166,7 +168,10 @@ fun createLivroDetailViewModel(livroId: Long): LivroDetailViewModel {
     val repository = remember { LivroRepository(database.livroDao(), apiService) }
     val comentarioRepository = remember { ComentarioRepository(database.comentarioDao()) }
     
-    return viewModel { LivroDetailViewModel(repository, comentarioRepository, livroId) }
+    // Força a criação de um novo ViewModel a cada mudança de livroId
+    return viewModel(key = "livro_detail_$livroId") { 
+        LivroDetailViewModel(repository, comentarioRepository, livroId) 
+    }
 }
 
 // Tela de detalhes do livro
@@ -178,6 +183,7 @@ fun LivroDetailScreen(
 ) {
     val viewModel = createLivroDetailViewModel(livroId)
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
     
     Column(
         modifier = Modifier.fillMaxSize()
@@ -191,6 +197,17 @@ fun LivroDetailScreen(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Voltar"
                     )
+                }
+            },
+            actions = {
+                val livro = state.livro
+                if (livro != null) {
+                    IconButton(onClick = { createShareIntent(context, livro) }) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Compartilhar"
+                        )
+                    }
                 }
             }
         )
@@ -468,7 +485,7 @@ private fun ComentarioCard(
     onSaveEdit: (String) -> Unit,
     onCancelEdit: () -> Unit
 ) {
-    var editText by remember(isEditing) { mutableStateof(if (isEditing) comentario.texto else "") }
+    var editText by remember(isEditing) { mutableStateOf(if (isEditing) comentario.texto else "") }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -478,7 +495,6 @@ private fun ComentarioCard(
             modifier = Modifier.padding(16.dp)
         ) {
             if (isEditing) {
-                // Modo de edição
                 OutlinedTextField(
                     value = editText,
                     onValueChange = { editText = it },
