@@ -5,7 +5,7 @@ import android.content.Intent
 import com.example.myapplication.data.LivroEntity
 
 fun createShareIntent(context: Context, livro: LivroEntity) {
-    val shareText = "Confira este livro: ${livro.titulo} por ${livro.autor}. sinopse : ${livro.sumario}"
+    val shareText = "Confira este livro: ${livro.titulo}, Escrito por: ${livro.autor}. Sinopse : ${livro.sumario}"
     
     val intent = Intent().apply {
         action = Intent.ACTION_SEND
