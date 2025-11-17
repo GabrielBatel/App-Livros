@@ -20,6 +20,22 @@ class LivroRepository(
         return livroDao.getLivroById(id)
     }
 
+    fun getLivroFlowById(id: Long): Flow<LivroEntity?> {
+        return livroDao.getLivroByIdFlow(id)
+    }
+
+    suspend fun insertLivro(livro: LivroEntity): Long {
+        return livroDao.insertLivro(livro)
+    }
+
+    suspend fun updateLivro(livro: LivroEntity) {
+        livroDao.updateLivro(livro)
+    }
+
+    suspend fun deleteLivro(livro: LivroEntity) {
+        livroDao.deleteLivro(livro)
+    }
+
     suspend fun refreshLivrosIfNeeded() {
         val bookCount = livroDao.count()
         if (bookCount == 0) {

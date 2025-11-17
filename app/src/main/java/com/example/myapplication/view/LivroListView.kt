@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -90,43 +91,55 @@ fun createLivroListViewModel(): LivroListViewModel {
 // Tela principal
 @Composable
 fun LivroListScreen(
-    onLivroClick: (Long) -> Unit = {}
+    onLivroClick: (Long) -> Unit = {},
+    onCreateClick: () -> Unit
 ) {
-    val viewModel = createLivroListViewModel()
-    val state by viewModel.state.collectAsState()
+    Box(modifier = Modifier.fillMaxSize()) {
+        val viewModel = createLivroListViewModel()
+        val state by viewModel.state.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Título da tela
-        Text(
-            text = "Biblioteca de Livros",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Título da tela
+            Text(
+                text = "Biblioteca de Livros",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-        val currentError = state.error
-        when {
-            state.isLoading && state.livros.isEmpty() -> {
-                LoadingScreen()
+            val currentError = state.error
+            when {
+                state.isLoading && state.livros.isEmpty() -> {
+                    LoadingScreen()
+                }
+
+                currentError != null && state.livros.isEmpty() -> {
+                    ErrorScreen(
+                        error = currentError,
+                        onRetry = { viewModel.retry() }
+                    )
+                }
+
+                else -> {
+                    LivroGrid(
+                        livros = state.livros,
+                        onLivroClick = onLivroClick
+                    )
+                }
             }
+        }
 
-            currentError != null && state.livros.isEmpty() -> {
-                ErrorScreen(
-                    error = currentError,
-                    onRetry = { viewModel.retry() }
-                )
-            }
-
-            else -> {
-                LivroGrid(
-                    livros = state.livros,
-                    onLivroClick = onLivroClick
-                )
-            }
+        FloatingActionButton(
+            onClick = onCreateClick,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(imageVector = androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Novo livro")
         }
     }
 }

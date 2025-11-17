@@ -41,7 +41,8 @@ data class LivroDetailState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val novoComentario: String = "",
-    val editingComentario: Comentario? = null
+    val editingComentario: Comentario? = null,
+    val deleted: Boolean = false
 )
 
 // ViewModel para detalhes do livro
@@ -64,16 +65,12 @@ class LivroDetailViewModel(
             try {
                 _state.value = _state.value.copy(isLoading = true, error = null)
                 val livro = repository.getLivroById(livroId)
-                if (livro != null) {
-                    _state.value = _state.value.copy(
-                        livro = livro,
-                        isLoading = false
-                    )
-                } else {
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        error = "Livro não encontrado"
-                    )
+                repository.getLivroFlowById(livroId).collect { livro ->
+                    if (livro != null) {
+                        _state.value = _state.value.copy(livro = livro, isLoading = false, error = null)
+                    } else {
+                        _state.value = _state.value.copy(livro = null, isLoading = false, error = "Livro não encontrado")
+                    }
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
@@ -153,6 +150,20 @@ class LivroDetailViewModel(
         }
     }
 
+    fun deletarLivro() {
+        val livro = _state.value.livro ?: return
+        viewModelScope.launch {
+            try {
+                repository.deleteLivro(livro)
+                _state.value = _state.value.copy(deleted = true)
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    error = "Erro ao deletar livro: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun retry() {
         loadLivroDetail()
     }
@@ -162,15 +173,14 @@ class LivroDetailViewModel(
 @Composable
 fun createLivroDetailViewModel(livroId: Long): LivroDetailViewModel {
     val context = LocalContext.current
-    
+
     val apiService = remember { RetrofitInstance.api }
     val database = remember { AppDatabase.getDatabase(context) }
     val repository = remember { LivroRepository(database.livroDao(), apiService) }
     val comentarioRepository = remember { ComentarioRepository(database.comentarioDao()) }
-    
-    // Força a criação de um novo ViewModel a cada mudança de livroId
-    return viewModel(key = "livro_detail_$livroId") { 
-        LivroDetailViewModel(repository, comentarioRepository, livroId) 
+
+    return viewModel(key = "livro_detail_$livroId") {
+        LivroDetailViewModel(repository, comentarioRepository, livroId)
     }
 }
 
@@ -179,12 +189,22 @@ fun createLivroDetailViewModel(livroId: Long): LivroDetailViewModel {
 @Composable
 fun LivroDetailScreen(
     livroId: Long,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditClick: (LivroEntity) -> Unit // novo callback para editar
 ) {
     val viewModel = createLivroDetailViewModel(livroId)
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Se foi deletado, volta automaticamente
+    if (state.deleted) {
+        LaunchedEffect(Unit) {
+            onBackClick()
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -208,26 +228,63 @@ fun LivroDetailScreen(
                             contentDescription = "Compartilhar"
                         )
                     }
+
+                    IconButton(onClick = { onEditClick(livro) }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar livro"
+                        )
+                    }
+
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Deletar livro",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         )
-        
+
+        // diálogo de confirmação de deleção
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                        viewModel.deletarLivro()
+                    }) {
+                        Text("Deletar", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancelar")
+                    }
+                },
+                title = { Text("Confirmar remoção") },
+                text = { Text("Deseja remover este livro? Esta ação não pode ser desfeita.") }
+            )
+        }
+
+        // ...existing UI rendering (sem alterações)...
         val currentError = state.error
         val currentLivro = state.livro
 
-        // Conteúdo
         when {
             state.isLoading -> {
                 LoadingDetailScreen()
             }
-            
+
             currentError != null -> {
                 ErrorDetailScreen(
                     error = currentError,
                     onRetry = { viewModel.retry() }
                 )
             }
-            
+
             currentLivro != null -> {
                 LivroDetailContent(
                     livro = currentLivro,
